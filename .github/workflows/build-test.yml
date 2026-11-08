@@ -104,5 +104,5 @@ jobs:
 
       - name: The same under the loaded module, in pieces
         run: |
-          so=$(echo "$HOME"/nginx/modules/ngx_http_redis_module.so)
+          so="$HOME/nginx/modules/ngx_http_redis_module.so"
           HOSTILE_LOAD_MODULE="$so" ci/hostile.sh "$HOME/nginx/sbin/nginx"
