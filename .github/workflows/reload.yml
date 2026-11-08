@@ -1,0 +1,46 @@
+name: Reload
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  schedule:
+    # Monday morning, so a new nginx release that breaks the module shows
+    # up here and not in somebody's build
+    - cron: '53 7 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reload:
+    name: eight reloads in a row
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # A module that allocates or opens something per cycle and never gives
+    # it back is invisible in normal use: nothing fails, nothing is logged,
+    # and the process grows by one cycle's worth on every reload.  A test
+    # suite cannot see it, because a suite starts nginx once.
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: ./.github/actions/setup
+        with:
+          test-nginx: 'false'
+          packages: redis-server
+
+      - name: Build nginx
+        run: |
+          . .github/versions.env
+          ci/build.sh "$NGINX_VERSION" "$HOME/nginx"
+
+      - name: Start a Redis for the probe
+        run: ci/redis.sh
+
+      - name: Seed the key the probe reads
+        run: ci/seed.sh
+
+      - name: Reload and look for what a reload leaks
+        run: ci/reload.sh "$HOME/nginx/sbin/nginx"
